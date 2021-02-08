@@ -174,6 +174,7 @@ def construct_teca_pipeline(\
         cloud_base_threshold = 400,
         start_month_index = None,
         end_month_index = None,
+	steps_per_file = 12,
         ):
     """Construct the TECA pipeline for this application.
 
@@ -212,6 +213,8 @@ def construct_teca_pipeline(\
         start_month_index       : The index of the first month to process
 
         end_month_index         : The index of the last month to process
+
+	steps_per_file          : The number of timesteps to put in each output 			          file
 
     """
 
@@ -266,7 +269,7 @@ def construct_teca_pipeline(\
     tfw.set_point_arrays(fog.get_point_array_names())
     tfw.set_thread_pool_size(1)
     tfw.set_executive(exe)
-    tfw.set_steps_per_file(8)
+    tfw.set_steps_per_file(steps_per_file)
     if start_month_index is not None:
         tfw.set_first_step(start_month_index)
     if end_month_index is not None:
@@ -337,6 +340,9 @@ if __name__ == "__main__":
     parser.add_argument('--end_month_index',
         help = "The index of the last month to process",
         default = None)
+    parser.add_argument('--steps_per_file',
+        help = "The number of steps to put in each output file",
+        default = 12)
 
 
     # parse the command line arguments
@@ -352,7 +358,6 @@ if __name__ == "__main__":
         end_month_index = None
     else:
         end_month_index = int(args.end_month_index)
-
 
 
     # construct the TECA pipeline
@@ -371,8 +376,9 @@ if __name__ == "__main__":
         ptop = args.ptop,
         clw_threshold = float(args.clw_threshold),
         cloud_base_threshold = float(args.cloud_base_threshold),
-        start_month_index = int(args.start_month_index),
-        end_month_index = int(args.end_month_index),
+        start_month_index = start_month_index,
+        end_month_index = end_month_index,
+	steps_per_file = args.steps_per_file,
     )
 
     # run the pipeline
