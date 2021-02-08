@@ -1,0 +1,5 @@
+test*/
+*.nc
+*__pycache*
+*.ipynb_checkpoints*
+*.vscode*
