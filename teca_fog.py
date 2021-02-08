@@ -342,6 +342,19 @@ if __name__ == "__main__":
     # parse the command line arguments
     args = parser.parse_args()
 
+    # set defaults for the start and end months
+    if args.start_month_index is None:
+        start_month_index = None
+    else:
+        start_month_index = int(args.start_month_index)
+
+    if args.end_month_index is None:
+        end_month_index = None
+    else:
+        end_month_index = int(args.end_month_index)
+
+
+
     # construct the TECA pipeline
     pipeline = construct_teca_pipeline(
         files_regex = args.input_regex,

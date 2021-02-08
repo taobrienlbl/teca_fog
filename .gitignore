@@ -3,3 +3,4 @@ test*/
 *__pycache*
 *.ipynb_checkpoints*
 *.vscode*
+test*.bash
