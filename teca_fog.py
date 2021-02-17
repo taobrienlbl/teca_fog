@@ -146,7 +146,9 @@ class teca_fog(teca_python_vertical_reduction):
         )
 
         # calculate fog
-        fog = np.array(zbase <= self.cloud_base_threshold).astype(np.float64)
+        fog = np.array(np.logical_and(zbase <= self.cloud_base_threshold,
+                                      zbase != self.fill_value).astype(np.float64))
+        
 
         out_arrays = out_mesh.get_point_arrays()
         out_arrays['fog'] = fog.ravel()
@@ -174,7 +176,8 @@ def construct_teca_pipeline(\
         cloud_base_threshold = 400,
         start_month_index = None,
         end_month_index = None,
-	steps_per_file = 12,
+        steps_per_file = 12,
+        inline_reduction = True,
         ):
     """Construct the TECA pipeline for this application.
 
@@ -214,7 +217,9 @@ def construct_teca_pipeline(\
 
         end_month_index         : The index of the last month to process
 
-	steps_per_file          : The number of timesteps to put in each output 			          file
+        steps_per_file          : The number of timesteps to put in each output file
+
+        inline_reduction        : Flags whether to do a temporal reduction in the pipeline
 
     """
 
@@ -249,15 +254,18 @@ def construct_teca_pipeline(\
     pipeline_stages.append(fog)
 
     # temporal reduction
-    tre = teca.teca_temporal_reduction.New()
-    tre.set_interval("monthly")
-    tre.set_operator("average")
-    tre.set_point_arrays(fog.get_point_array_names())
-    tre.set_thread_pool_size(-1)
-    tre.set_stream_size(2)
-    tre.set_verbose(1)
-    tre.set_verbose(int(be_verbose))
-    pipeline_stages.append(tre)
+    if inline_reduction:
+        tre = teca.teca_temporal_reduction.New()
+        tre.set_interval("monthly")
+        tre.set_operator("average")
+        tre.set_point_arrays(fog.get_point_array_names())
+        tre.set_thread_pool_size(-1)
+        tre.set_stream_size(2)
+        tre.set_verbose(1)
+        tre.set_verbose(int(be_verbose))
+        pipeline_stages.append(tre)
+    else:
+        steps_per_file = 10000
 
     # executive
     exe = teca.teca_index_executive.New()
@@ -270,10 +278,11 @@ def construct_teca_pipeline(\
     tfw.set_thread_pool_size(1)
     tfw.set_executive(exe)
     tfw.set_steps_per_file(steps_per_file)
-    if start_month_index is not None:
-        tfw.set_first_step(start_month_index)
-    if end_month_index is not None:
-        tfw.set_last_step(end_month_index)
+    if inline_reduction:
+        if start_month_index is not None:
+            tfw.set_first_step(start_month_index)
+        if end_month_index is not None:
+            tfw.set_last_step(end_month_index)
     tfw.set_verbose(int(be_verbose))
     pipeline_stages.append(tfw)
 
@@ -343,6 +352,10 @@ if __name__ == "__main__":
     parser.add_argument('--steps_per_file',
         help = "The number of steps to put in each output file",
         default = 12)
+    parser.add_argument('--no_inline_reduction',
+        help = "Flags that a temporal reduction should not be done; output raw timesteps.",
+        default = False,
+        action = 'store_true')
 
 
     # parse the command line arguments
@@ -378,7 +391,8 @@ if __name__ == "__main__":
         cloud_base_threshold = float(args.cloud_base_threshold),
         start_month_index = start_month_index,
         end_month_index = end_month_index,
-	steps_per_file = args.steps_per_file,
+        steps_per_file = args.steps_per_file,
+        inline_reduction = not args.no_inline_reduction,
     )
 
     # run the pipeline
